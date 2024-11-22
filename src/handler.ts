@@ -1,11 +1,11 @@
 import { APIGatewayEvent, APIGatewayProxyResult } from "aws-lambda";
-// import AWS from "aws-sdk";
+import { S3 } from "@aws-sdk/client-s3";
 
 // MongoDB and S3 setup
 import { MongoClient } from "mongodb";
 
 const mongodbUri = process.env.MONGODB_URI!;
-// const s3 = new AWS.S3();
+const s3 = new S3();
 const bucketName = process.env.S3_BUCKET_NAME!;
 
 let mongoClient: MongoClient | null = null;
@@ -119,14 +119,13 @@ export const uploadPicture = async (
 
     const buffer = Buffer.from(fileContent, "base64");
 
-    // await s3
-    //   .putObject({
-    //     Bucket: bucketName,
-    //     Key: fileName,
-    //     Body: buffer,
-    //     ContentType: "image/jpeg", // Adjust for other types if needed
-    //   })
-    //   .promise();
+    await s3
+      .putObject({
+        Bucket: bucketName,
+        Key: fileName,
+        Body: buffer,
+        ContentType: "image/jpeg", // Adjust for other types if needed
+      });
 
     return {
       statusCode: 200,
