@@ -89,7 +89,7 @@ resources:
         InsufficientDataActions:
           - !Ref 500SnsTopicUploadPicture
 
-    # VPC, Nat Gateway, Elasitc IP resrouces
+    # VPC, Nat Gateway, Elasitc IP ressources
     VPC:
       Type: AWS::EC2::VPC
       Properties:
