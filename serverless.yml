@@ -89,7 +89,7 @@ resources:
         InsufficientDataActions:
           - !Ref 500SnsTopicUploadPicture
 
-    # VPC, Nat Gateway, Elasitc IP ressources
+    # VPC ressources
     VPC:
       Type: AWS::EC2::VPC
       Properties:
@@ -97,9 +97,11 @@ resources:
         EnableDnsHostnames: true
         EnableDnsSupport: true
 
+    # Internet Gateway
     InternetGateway:
       Type: AWS::EC2::InternetGateway
 
+    # Attach the Internet Gateway to the VPC
     VPCGatewayAttachment:
       Type: AWS::EC2::VPCGatewayAttachment
       Properties:
@@ -138,17 +140,20 @@ resources:
         MapPublicIpOnLaunch: false
         AvailabilityZone: eu-west-1b
 
+    # Will allow our Lambda functions to access the internet
     NATGateway:
       Type: AWS::EC2::NatGateway
       Properties:
         AllocationId: !GetAtt ElasticIP.AllocationId
         SubnetId: !Ref PublicSubnet1
 
+    # Will allow us to have a static IP for our NAT Gateway (Mongodb whitelist this IP)
     ElasticIP:
       Type: AWS::EC2::EIP
       Properties:
         Domain: vpc
 
+    # Route tables
     RouteTablePublic:
       Type: AWS::EC2::RouteTable
       Properties:
@@ -197,6 +202,7 @@ resources:
         SubnetId: !Ref PrivateSubnet2
         RouteTableId: !Ref RouteTablePrivate
 
+    # Security groups
     LambdaSecurityGroup:
       Type: AWS::EC2::SecurityGroup
       Properties:
