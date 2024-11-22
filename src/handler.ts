@@ -22,18 +22,6 @@ async function getMongoClient() {
   return mongoClient;
 }
 
-export const debugEnv = async () => {
-  console.log('MONGODB_URI:', process.env.MONGODB_URI);
-  console.log('S3_BUCKET_NAME:', process.env.S3_BUCKET_NAME);
-  return {
-    statusCode: 200,
-    body: JSON.stringify({
-      MONGODB_URI: process.env.MONGODB_URI,
-      S3_BUCKET_NAME: process.env.S3_BUCKET_NAME,
-    }),
-  };
-};
-
 // Create a post
 export const createPost = async (
   event: APIGatewayEvent
@@ -48,6 +36,11 @@ export const createPost = async (
 
     return {
       statusCode: 201,
+      headers: {
+        "Access-Control-Allow-Origin": "*", // Allow requests from any origin
+        "Access-Control-Allow-Methods": "GET,POST,OPTIONS", // Allow specific HTTP methods
+        "Access-Control-Allow-Headers": "Content-Type,Authorization", // Allow specific headers
+      },
       body: JSON.stringify({
         message: "Post created successfully",
         postId: result.insertedId,
@@ -91,6 +84,11 @@ export const getPosts = async (
 
     return {
       statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*", // Allow requests from any origin
+        "Access-Control-Allow-Methods": "GET,POST,OPTIONS", // Allow specific HTTP methods
+        "Access-Control-Allow-Headers": "Content-Type,Authorization", // Allow specific headers
+      },
       body: JSON.stringify(posts),
     };
   } catch (error) {
@@ -129,6 +127,11 @@ export const uploadPicture = async (
 
     return {
       statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*", // Allow requests from any origin
+        "Access-Control-Allow-Methods": "GET,POST,OPTIONS", // Allow specific HTTP methods
+        "Access-Control-Allow-Headers": "Content-Type,Authorization", // Allow specific headers
+      },
       body: JSON.stringify({
         message: "Picture uploaded successfully",
         fileName,
