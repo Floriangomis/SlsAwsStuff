@@ -1,0 +1,226 @@
+service: audio-blog
+
+useDotenv: true
+
+build:
+  esbuild: false
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  profile: perso
+  region: eu-west-1
+  environment:
+    MONGODB_URI: ${env:MONGODB_URI}
+    S3_BUCKET_NAME: ${env:S3_BUCKET_NAME}
+
+functions:  
+  createPost:
+    handler: src/handler.createPost
+    vpc:
+      securityGroupIds:
+        - Ref: LambdaSecurityGroup # Defined below
+      subnetIds:
+        - Ref: PrivateSubnet1
+        - Ref: PrivateSubnet2
+    events:
+      - http:
+          path: posts
+          cors: true
+          method: post
+
+  getPosts:
+    handler: src/handler.getPosts
+    vpc:
+      securityGroupIds:
+        - Ref: LambdaSecurityGroup # Defined below
+      subnetIds:
+        - Ref: PrivateSubnet1
+        - Ref: PrivateSubnet2
+    events:
+      - http:
+          path: posts
+          cors: true
+          method: get
+
+  uploadPicture:
+    handler: src/handler.uploadPicture
+    vpc:
+      securityGroupIds:
+        - Ref: LambdaSecurityGroup # Defined below
+      subnetIds:
+        - Ref: PrivateSubnet1
+        - Ref: PrivateSubnet2
+    events:
+      - http:
+          path: upload
+          cors: true
+          method: post
+
+resources:
+  Resources:
+
+    # Alarm ressources 
+    500SnsTopicUploadPicture:
+      Type: AWS::SNS::Topic
+      Properties:
+        DisplayName: 500SnsTopicUploadPicture
+
+    500ErrorAlarm: 
+      Type: AWS::CloudWatch::Alarm
+      Properties:
+        AlarmName: 500ErrorAlarm
+        AlarmDescription: Alarm if 500 errors are greater than 0
+        Namespace: AWS/Lambda
+        MetricName: Errors
+        Dimensions:
+          - Name: FunctionName
+            Value: !Ref UploadPictureLambdaFunction
+        Statistic: Sum
+        Period: 60
+        EvaluationPeriods: 1
+        Threshold: 0
+        ComparisonOperator: GreaterThanThreshold
+        TreatMissingData: notBreaching
+        AlarmActions:
+          - !Ref 500SnsTopicUploadPicture
+        OKActions:
+          - !Ref 500SnsTopicUploadPicture
+        InsufficientDataActions:
+          - !Ref 500SnsTopicUploadPicture
+
+    # VPC, Nat Gateway, Elasitc IP resrouces
+    VPC:
+      Type: AWS::EC2::VPC
+      Properties:
+        CidrBlock: 10.0.0.0/16
+        EnableDnsHostnames: true
+        EnableDnsSupport: true
+
+    InternetGateway:
+      Type: AWS::EC2::InternetGateway
+
+    VPCGatewayAttachment:
+      Type: AWS::EC2::VPCGatewayAttachment
+      Properties:
+        VpcId: !Ref VPC
+        InternetGatewayId: !Ref InternetGateway
+
+    PublicSubnet1:
+      Type: AWS::EC2::Subnet
+      Properties:
+        VpcId: !Ref VPC
+        CidrBlock: 10.0.1.0/24
+        MapPublicIpOnLaunch: true
+        AvailabilityZone: eu-west-1a
+
+    PublicSubnet2:
+      Type: AWS::EC2::Subnet
+      Properties:
+        VpcId: !Ref VPC
+        CidrBlock: 10.0.2.0/24
+        MapPublicIpOnLaunch: true
+        AvailabilityZone: eu-west-1b
+
+    PrivateSubnet1:
+      Type: AWS::EC2::Subnet
+      Properties:
+        VpcId: !Ref VPC
+        CidrBlock: 10.0.3.0/24
+        MapPublicIpOnLaunch: false
+        AvailabilityZone: eu-west-1a
+
+    PrivateSubnet2:
+      Type: AWS::EC2::Subnet
+      Properties:
+        VpcId: !Ref VPC
+        CidrBlock: 10.0.4.0/24
+        MapPublicIpOnLaunch: false
+        AvailabilityZone: eu-west-1b
+
+    NATGateway:
+      Type: AWS::EC2::NatGateway
+      Properties:
+        AllocationId: !GetAtt ElasticIP.AllocationId
+        SubnetId: !Ref PublicSubnet1
+
+    ElasticIP:
+      Type: AWS::EC2::EIP
+      Properties:
+        Domain: vpc
+
+    RouteTablePublic:
+      Type: AWS::EC2::RouteTable
+      Properties:
+        VpcId: !Ref VPC
+
+    PublicRoute:
+      Type: AWS::EC2::Route
+      Properties:
+        RouteTableId: !Ref RouteTablePublic
+        DestinationCidrBlock: 0.0.0.0/0
+        GatewayId: !Ref InternetGateway
+
+    PublicSubnetRouteTableAssociation1:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+        SubnetId: !Ref PublicSubnet1
+        RouteTableId: !Ref RouteTablePublic
+
+    PublicSubnetRouteTableAssociation2:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+        SubnetId: !Ref PublicSubnet2
+        RouteTableId: !Ref RouteTablePublic
+
+    RouteTablePrivate:
+      Type: AWS::EC2::RouteTable
+      Properties:
+        VpcId: !Ref VPC
+
+    PrivateRoute:
+      Type: AWS::EC2::Route
+      Properties:
+        RouteTableId: !Ref RouteTablePrivate
+        DestinationCidrBlock: 0.0.0.0/0
+        NatGatewayId: !Ref NATGateway
+
+    PrivateSubnetRouteTableAssociation1:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+        SubnetId: !Ref PrivateSubnet1
+        RouteTableId: !Ref RouteTablePrivate
+
+    PrivateSubnetRouteTableAssociation2:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+        SubnetId: !Ref PrivateSubnet2
+        RouteTableId: !Ref RouteTablePrivate
+
+    LambdaSecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: Allow outbound traffic
+        VpcId: !Ref VPC
+        SecurityGroupEgress:
+          - IpProtocol: -1
+            CidrIp: 0.0.0.0/0
+
+custom:
+  stage: ${opt:stage, 'dev'}
+  offline:
+    httpPort: 4000
+  dotenv:
+    path: .env.${self:custom.stage}
+  esbuild:
+    bundle: true
+    minify: true
+    sourcemap: true
+    target: "node18"
+    platform: "node"
+    external: ["aws-sdk"] # Externalize AWS SDK (provided by AWS runtime)
+
+plugins:
+  - serverless-esbuild
+  - serverless-dotenv-plugin
+  - serverless-offline

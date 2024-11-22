@@ -1,0 +1,23 @@
+{
+  "name": "lambda",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.145",
+    "@types/node": "^22.9.1",
+    "esbuild": "^0.24.0",
+    "mongodb": "^6.10.0",
+    "serverless-dotenv-plugin": "^6.0.0",
+    "serverless-esbuild": "^1.54.5",
+    "serverless-offline": "^14.3.4",
+    "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.1692.0"
+  },
+  "scripts": {
+    "start:local": "NODE_ENV=dev sls offline",
+    "start:prod": "NODE_ENV=prod sls offline"
+  }
+}
