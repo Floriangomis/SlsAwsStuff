@@ -13,6 +13,7 @@ provider:
   environment:
     MONGODB_URI: ${env:MONGODB_URI}
     S3_BUCKET_NAME: ${env:S3_BUCKET_NAME}
+    WEBSOCKET_ENDPOINT: "https://${self:custom.apiId}.execute-api.${self:provider.region}.amazonaws.com/${self:custom.stage}"
 
 functions:  
   createPost:
@@ -84,9 +85,63 @@ functions:
               - Access-Control-Allow-Origin
           method: post
 
-resources:
-  Resources:
+  connect:
+    handler: src/handler.connect
+    vpc:
+      securityGroupIds:
+        - Ref: LambdaSecurityGroup # Defined below
+      subnetIds:
+        - Ref: PrivateSubnet1
+        - Ref: PrivateSubnet2
+    events:
+      - websocket:
+          route: $connect
 
+  disconnect:
+    handler: src/handler.disconnect
+    vpc:
+      securityGroupIds:
+        - Ref: LambdaSecurityGroup # Defined below
+      subnetIds:
+        - Ref: PrivateSubnet1
+        - Ref: PrivateSubnet2
+    events:
+      - websocket:
+          route: $disconnect
+
+  identify:
+    handler: src/handler.identify
+    vpc:
+      securityGroupIds:
+        - Ref: LambdaSecurityGroup # Defined below
+      subnetIds:
+        - Ref: PrivateSubnet1
+        - Ref: PrivateSubnet2
+    events:
+      - websocket:
+          route: identify
+
+  sendMessage:
+    handler: src/handler.sendMessage
+    vpc:
+      securityGroupIds:
+        - Ref: LambdaSecurityGroup # Defined below
+      subnetIds:
+        - Ref: PrivateSubnet1
+        - Ref: PrivateSubnet2
+    events:
+      - websocket:
+          route: sendMessage
+
+resources:
+  Outputs:
+    WebSocketApiId:
+      Value:
+        Ref: WebsocketsApi # The logical resource name of the WebSocket API
+      Export:
+        Name: WebSocketApiId-${self:custom.stage}
+
+  Resources:
     # Alarm ressources 
     500SnsTopicUploadPicture:
       Type: AWS::SNS::Topic
@@ -127,6 +182,31 @@ resources:
     # Internet Gateway
     InternetGateway:
       Type: AWS::EC2::InternetGateway
+
+    # Dynamo DB ressources
+    WebSocketConnectionsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: WebSocketConnections
+        AttributeDefinitions:
+          - AttributeName: connectionId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: connectionId
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+  
+    MessageLogsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: MessageLogs
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
 
     # Attach the Internet Gateway to the VPC
     VPCGatewayAttachment:
@@ -241,7 +321,8 @@ resources:
 
 custom:
   stage: ${opt:stage, 'dev'}
-  offline:
+  apiId: "ky1j0ockj2" # The API Gateway ID - I had to deploy once without this and the wensocket in environnement. then retrieve the Id and put it here
+  serverless-offline:
     httpPort: 4000
   dotenv:
     path: .env.${self:custom.stage}
