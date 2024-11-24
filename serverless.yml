@@ -133,6 +133,18 @@ functions:
       - websocket:
           route: sendMessage
 
+  manualDisconnect:
+    handler: src/handler.manualDisconnect
+    vpc:
+      securityGroupIds:
+        - Ref: LambdaSecurityGroup # Defined below
+      subnetIds:
+        - Ref: PrivateSubnet1
+        - Ref: PrivateSubnet2
+    events:
+      - websocket:
+          route: manualDisconnect
+
 resources:
   Outputs:
     WebSocketApiId:

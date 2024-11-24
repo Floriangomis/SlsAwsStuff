@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 // MongoDB setup
 import { MongoClient } from "mongodb";
 const mongodbUri = process.env.MONGODB_URI!;
+let mongoClient: MongoClient | null = null;
 // S3 setup
 const s3 = new S3();
 const bucketName = process.env.S3_BUCKET_NAME!;
@@ -16,7 +17,6 @@ const client = new DynamoDBClient();
 const CONNECTIONS_TABLE_NAME = "WebSocketConnections";
 const MESSAGES_TABLE_NAME = "MessageLogs";
 
-let mongoClient: MongoClient | null = null;
 async function getMongoClient() {
   if (!mongoClient) {
     console.log({
@@ -155,9 +155,6 @@ export const uploadPicture = async (
 };
 
 //  WEBSOCKET SECTION 
-
-// This can't work since the lambda are not sharing memory ....
-
 const apiGatewayClient = new ApiGatewayManagementApiClient({
   endpoint: process.env.WEBSOCKET_ENDPOINT,
 });
@@ -197,6 +194,8 @@ export const identify = async (event: APIGatewayEvent) => {
       const postToConnectionCommand = new PostToConnectionCommand({
         ConnectionId: connectionId,
         Data: JSON.stringify({
+          action: "identify",
+          status: 'success',
           sortedLatestLogs
         }),
       });
@@ -212,6 +211,14 @@ export const identify = async (event: APIGatewayEvent) => {
       };
     } catch (error) {
       console.error("Error saving User : ", error);
+      const postToConnectionCommand = new PostToConnectionCommand({
+        ConnectionId: connectionId,
+        Data: JSON.stringify({
+          action: "identify",
+          status: 'failed'
+        }),
+      });
+      await apiGatewayClient.send(postToConnectionCommand);
       return {
         statusCode: 500,
         body: "Failed to identify username.",
@@ -263,6 +270,36 @@ export const disconnect = async (event: APIGatewayEvent) => {
       },
     });
     await client.send(command);
+    return { 
+      statusCode: 200,
+      body: `${connectionId} Disconnected.`,
+      headers: {
+        "Access-Control-Allow-Origin": "*", // Allow requests from any origin
+        "Access-Control-Allow-Methods": "GET,POST,OPTIONS", // Allow specific HTTP methods
+        "Access-Control-Allow-Headers": "Content-Type,Authorization", // Allow specific headers
+      },
+    };
+  } catch (error) {
+    console.error("Error removing connection:", error);
+    return {
+      statusCode: 500,
+      body: "Failed to disconnect.",
+    };
+  }
+  
+};
+
+export const manualDisconnect = async (event: APIGatewayEvent) => {
+  const { connectionId } = event.requestContext;
+  try {
+    const postToConnectionCommand = new PostToConnectionCommand({
+      ConnectionId: connectionId,
+      Data: JSON.stringify({
+        action: "manualDisconnect",
+        status: 'success'
+      }),
+    });
+    await apiGatewayClient.send(postToConnectionCommand);
     return { 
       statusCode: 200,
       body: `${connectionId} Disconnected.`,
@@ -339,6 +376,8 @@ export const sendMessage = async (event: APIGatewayEvent) => {
       const postToConnectionCommand = new PostToConnectionCommand({
         ConnectionId: connectionId,
         Data: JSON.stringify({
+          status: 'success',
+          action: 'sendMessage',
           sortedLatestLogs
         }),
       });
@@ -354,6 +393,14 @@ export const sendMessage = async (event: APIGatewayEvent) => {
     };
   } catch (error) {
     console.error("Error handling action:", error);
+    const postToConnectionCommand = new PostToConnectionCommand({
+      ConnectionId: connectionId,
+      Data: JSON.stringify({
+        status: 'fail',
+        action: 'sendMessage',
+      }),
+    });
+    await apiGatewayClient.send(postToConnectionCommand);
     return {
       statusCode: 500,
       body: "Failed to handle message.",
