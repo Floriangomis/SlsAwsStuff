@@ -145,6 +145,18 @@ functions:
       - websocket:
           route: manualDisconnect
 
+  keepConnectionAlive:
+    handler: src/handler.keepConnectionAlive
+    vpc:
+      securityGroupIds:
+        - Ref: LambdaSecurityGroup # Defined below
+      subnetIds:
+        - Ref: PrivateSubnet1
+        - Ref: PrivateSubnet2
+    events:
+      - websocket:
+          route: keepConnectionAlive
+
 resources:
   Outputs:
     WebSocketApiId:

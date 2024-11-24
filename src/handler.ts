@@ -316,7 +316,27 @@ export const manualDisconnect = async (event: APIGatewayEvent) => {
       body: "Failed to disconnect.",
     };
   }
-  
+};
+
+export const keepConnectionAlive = async (event: APIGatewayEvent) => {
+  const { connectionId } = event.requestContext;
+  try {
+    return {
+      statusCode: 200,
+      body: `${connectionId} Connection kept alive.`,
+      headers: {
+        "Access-Control-Allow-Origin": "*", // Allow requests from any origin
+        "Access-Control-Allow-Methods": "GET,POST,OPTIONS", // Allow specific HTTP methods
+        "Access-Control-Allow-Headers": "Content-Type,Authorization", // Allow specific headers
+      },
+    };
+  } catch (error) {
+    console.error("Error keeping connection alive:", error);
+    return {
+      statusCode: 500,
+      body: "Failed to keep connection alive.",
+    };
+  }
 };
 
 export const sendMessage = async (event: APIGatewayEvent) => {
