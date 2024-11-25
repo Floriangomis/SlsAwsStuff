@@ -1,3 +1,15 @@
+# Context 
+
+I am just playing with aws (VPC, APGW, DynamoDB, NetGateway, Sns ... ), Websocket, Mongodb, Auth0, serverless, typescript, Node and more...
+No restriction, I just want to learn as much as possible.
+
+So far we have :
+
+- A realtime Chat ( the UI is in on a private repo ).
+- AUthentication system using Auth0
+- A blog post system reading from a mongodb cluster.
+
+
 # Serverless command :
 
 ```sls deploy --stage <env>```
