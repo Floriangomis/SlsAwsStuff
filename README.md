@@ -1,13 +1,13 @@
 # Context 
 
-I am just playing with aws (VPC, APGW, DynamoDB, NetGateway, Sns ... ), Websocket, Mongodb, Auth0, serverless, typescript, Node and more...
+I am just playing with aws (VPC, APGW, DynamoDB, NetGateway, Sns, ElasticIP ... ), Websocket, Mongodb, Auth0, serverless, typescript, Node and more...
 No restriction, I just want to learn as much as possible.
 
 So far we have :
 
-- A realtime Chat ( the UI is in on a private repo ).
+- A realtime Chat ( the UI is in on a private repo ). It's using APGW, Websocket and some lambdas being inside a VPC.
 - AUthentication system using Auth0
-- A blog post system reading from a mongodb cluster.
+- A blog post system reading from a mongodb cluster. ( The lambda are inside a VPC and are able to communicate with the MONGODB cluster thanks to a whitelist and a restriction by IP ).
 
 
 # Serverless command :
