@@ -16,9 +16,10 @@ let mongoClient: MongoClient | null = null;
 const s3 = new S3();
 const bucketName = process.env.S3_BUCKET_NAME!;
 // DynamoDB setup ( Locally you need to run a local DynamoDB instance on port 8000 )
-const webSocketEndpoint = env === 'dev' ? 'http://localhost:8000' : process.env.WEBSOCKET_ENDPOINT
+const webSocketEndpoint = (env === 'dev') ? 'ws://localhost:3001' : process.env.WEBSOCKET_ENDPOINT
+const dynamoDBendpointLocal =  (env === 'dev') ? 'http://localhost:8000' : undefined;
 const client = new DynamoDBClient({
-  endpoint: webSocketEndpoint,
+  ...(dynamoDBendpointLocal && { endpoint: dynamoDBendpointLocal }), // If running locally, use the local endpoint
 });
 const CONNECTIONS_TABLE_NAME = "WebSocketConnections";
 const MESSAGES_TABLE_NAME = "MessageLogs";
