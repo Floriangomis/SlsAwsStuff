@@ -8,12 +8,18 @@ const { PutCommand, DeleteCommand, GetCommand, ScanCommand } = require("@aws-sdk
 // MongoDB setup
 import { MongoClient } from "mongodb";
 const mongodbUri = process.env.MONGODB_URI!;
+const env = process.env.ENV;
+console.log('--------- ENV : ' + env + ' --------');
+
 let mongoClient: MongoClient | null = null;
 // S3 setup
 const s3 = new S3();
 const bucketName = process.env.S3_BUCKET_NAME!;
-// DynamoDB setup
-const client = new DynamoDBClient();
+// DynamoDB setup ( Locally you need to run a local DynamoDB instance on port 8000 )
+const webSocketEndpoint = env === 'dev' ? 'http://localhost:8000' : process.env.WEBSOCKET_ENDPOINT
+const client = new DynamoDBClient({
+  endpoint: webSocketEndpoint,
+});
 const CONNECTIONS_TABLE_NAME = "WebSocketConnections";
 const MESSAGES_TABLE_NAME = "MessageLogs";
 
@@ -156,7 +162,7 @@ export const uploadPicture = async (
 
 //  WEBSOCKET SECTION 
 const apiGatewayClient = new ApiGatewayManagementApiClient({
-  endpoint: process.env.WEBSOCKET_ENDPOINT,
+  endpoint: webSocketEndpoint,
 });
 
 export const identify = async (event: APIGatewayEvent) => {
@@ -182,15 +188,15 @@ export const identify = async (event: APIGatewayEvent) => {
       });
       await client.send(updateCommand);
 
-    // Fetch the latest logs from Dynamo
-    const latestLogsCmd = new ScanCommand({
-      TableName: MESSAGES_TABLE_NAME,
-    });
-    const latestLogs = (await client.send(latestLogsCmd)).Items;
-    // sort latestlogs by Date and time using the timestamp property
-    const sortedLatestLogs: any[]= latestLogs.sort((a: any, b: any) => {
-      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-    }).reverse();
+      // Fetch the latest logs from Dynamo
+      const latestLogsCmd = new ScanCommand({
+        TableName: MESSAGES_TABLE_NAME,
+      });
+      const latestLogs = (await client.send(latestLogsCmd)).Items;
+      // sort latestlogs by Date and time using the timestamp property
+      const sortedLatestLogs: any[]= latestLogs.sort((a: any, b: any) => {
+        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+      }).reverse();
       const postToConnectionCommand = new PostToConnectionCommand({
         ConnectionId: connectionId,
         Data: JSON.stringify({
