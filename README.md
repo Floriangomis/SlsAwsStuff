@@ -1,9 +1,9 @@
-#Serverless command :#
+# Serverless command :
 
 ```sls deploy --stage <env>```
 ```sls offline --stage <env>```
 
-#Env File :#
+# Env File :
 
 You need either .env.dev or .env.prod -> 
 ```
@@ -11,7 +11,7 @@ MONGODB_URI=<value>
 S3_BUCKET_NAME=<value>
 ```
 
-#DynamoDB locally : #
+# DynamoDB locally :
 
 First run a container from this image : docker run -p 8000:8000 dwmkerr/dynamodb
 
