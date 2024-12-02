@@ -14,7 +14,7 @@ provider:
     MONGODB_URI: ${env:MONGODB_URI}
     S3_BUCKET_NAME: ${env:S3_BUCKET_NAME}
     WEBSOCKET_ENDPOINT: "https://${self:custom.apiId}.execute-api.${self:provider.region}.amazonaws.com/${self:custom.stage}"
-    ENV: ${env:ENV}
+    ENV: ${env:ENV, 'dev'}
 
 functions:  
   createPost:
